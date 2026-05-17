@@ -2,259 +2,361 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>毽球男子三人赛发球系统</title>
-    
-    <!-- 加载 Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 加载 React 和 ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- 加载 Babel -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>毽球裁判发球轮转系统</title>
+    <!-- 引入 React, ReactDOM 和 Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f0fdf4; }
-        
         .court-bg {
-            background-color: #4ade80; /* Tailwind green-400 */
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.2) 2px, transparent 2px),
-                linear-gradient(90deg, rgba(255,255,255,0.2) 2px, transparent 2px);
-            background-size: 50px 50px;
-            border: 4px solid white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        .net {
-            width: 6px;
-            height: 100%;
-            background: repeating-linear-gradient(
-                180deg,
-                #fff,
-                #fff 10px,
-                #ccc 10px,
-                #ccc 20px
-            );
-            box-shadow: 4px 0 6px rgba(0,0,0,0.1);
-        }
-
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(234, 179, 8, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
-        }
-
-        .server-active {
-            animation: pulse-border 2s infinite;
-            border: 3px solid #eab308; /* yellow-500 */
-            background-color: #fef08a; /* yellow-200 */
+            background-color: #4CAF50;
+            background-image: linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px);
+            background-size: 30px 30px;
         }
         
-        .player-card {
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        .net {
+            background: repeating-linear-gradient(0deg, #fff, #fff 4px, #ccc 4px, #ccc 8px);
+            border-left: 2px solid white; border-right: 2px solid white;
+            width: 6px; height: 100%; position: absolute; left: 50%; transform: translateX(-50%); z-index: 10;
         }
 
-        /* 自定义滚动条 */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .player-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(250, 204, 21, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+        }
+        
+        .server-active {
+            animation: pulse-ring 2s infinite; border-color: #facc15 !important; border-width: 3px !important;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* 保证移动端不会因为输入框上推而变形 */
+        input:focus { outline: none; }
     </style>
 </head>
-<body class="text-gray-800 bg-gray-50">
-    <div id="root" class="min-h-[100dvh] flex flex-col"></div>
+<body class="text-gray-800 bg-gray-900 antialiased selection:bg-blue-200">
+    <div id="root" class="w-full flex flex-col items-center justify-center"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // 图标组件：毽球 (SVG)
         const ShuttlecockIcon = ({ className }) => (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <path d="M12 22v-5" />
-                <path d="M8 17h8" />
-                <path d="M7 17l-3-9 4 2 4-8 4 8 4-2-3 9" />
-                <circle cx="12" cy="19" r="3" fill="currentColor" />
+                <path d="M12 2L8 10H16L12 2Z" fill="currentColor" fillOpacity="0.2"/>
+                <path d="M12 10C14.2091 10 16 11.7909 16 14C16 16.2091 14.2091 18 12 18C9.79086 18 8 16.2091 8 14C8 11.7909 9.79086 10 12 10Z" fill="currentColor"/>
+                <path d="M10 18V21M14 18V21M12 18V22"/>
+                <path d="M4 6C4 6 7.5 9 8 10M20 6C20 6 16.5 9 16 10"/>
+            </svg>
+        );
+        
+        const UsersIcon = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
         );
 
-        // 图标组件：警告
-        const AlertIcon = ({ className }) => (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        const UserIcon = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
             </svg>
         );
 
         const App = () => {
-            const [phase, setPhase] = useState('setup'); // 'setup' | 'game'
-            
-            // 初始数据采用规则中的经典例子，便于用户直接理解
-            const [teamA, setTeamA] = useState({ name: '甲队', positions: ['A', 'B', 'C'] });
-            const [teamB, setTeamB] = useState({ name: '乙队', positions: ['X', 'Y', 'Z'] });
-            
+            const [phase, setPhase] = useState('modeSelect'); 
+            const [gameMode, setGameMode] = useState(3); // 2: 双人, 3: 三人
+
+            // 这里为双人赛加上了 serverIndex 属性，用来记录谁发球
+            const [teamA, setTeamA] = useState({ name: '甲队', positions: [], serverIndex: 0 });
+            const [teamB, setTeamB] = useState({ name: '乙队', positions: [], serverIndex: 0 });
             const [scoreA, setScoreA] = useState(0);
             const [scoreB, setScoreB] = useState(0);
-            const [servingTeam, setServingTeam] = useState(null); // 'A' | 'B'
-            
-            const [isSwapped, setIsSwapped] = useState(false); // 新增：场地左右交换状态
-            
+            const [servingTeam, setServingTeam] = useState(null);
             const [logs, setLogs] = useState([]);
             const [history, setHistory] = useState([]);
-            const [showErrorModal, setShowErrorModal] = useState(false);
+            const [isSwapped, setIsSwapped] = useState(false);
+            const [showGuideModal, setShowGuideModal] = useState(false);
+            
+            const [subTarget, setSubTarget] = useState(null);
+            const [subInput, setSubInput] = useState('');
 
             const logContainerRef = useRef(null);
 
-            // 自动滚动日志到底部
             useEffect(() => {
                 if (logContainerRef.current) {
                     logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
                 }
             }, [logs]);
 
-            // 真正的顺时针轮转：面朝球网，1号位(后)跑到3号位(左前)，3号位(左前)跑到2号位(右前)，2号位(右前)跑到1号位(后)
-            // 即：新1号位=原2号位，新2号位=原3号位，新3号位=原1号位
-            const getRotatedPositions = (positions) => {
-                return [positions[1], positions[2], positions[0]];
-            };
-
-            const addLog = (msg) => {
-                setLogs(prev => [...prev, { id: Date.now(), text: msg }]);
-            };
-
-            const handleScore = (scoringTeam) => {
-                // 保存历史状态以便撤销
-                setHistory(prev => [...prev, {
-                    teamA: { ...teamA, positions: [...teamA.positions] },
-                    teamB: { ...teamB, positions: [...teamB.positions] },
-                    scoreA,
-                    scoreB,
-                    servingTeam,
-                    logsLength: logs.length
-                }]);
-
-                if (scoringTeam === 'A') {
-                    setScoreA(prev => prev + 1);
-                    if (servingTeam === 'A') {
-                        addLog(`${teamA.name} 得分 (${scoreA + 1}:${scoreB})，由 1号位[${teamA.positions[0]}] 继续发球。`);
-                    } else {
-                        const newPos = getRotatedPositions(teamA.positions);
-                        setTeamA({ ...teamA, positions: newPos });
-                        setServingTeam('A');
-                        addLog(`${teamA.name} 得分 (${scoreA + 1}:${scoreB}) 并夺回发球权，顺时针轮转，由新1号位[${newPos[0]}] 发球。`);
-                    }
+            const selectMode = (mode) => {
+                setGameMode(mode);
+                if (mode === 3) {
+                    setTeamA({ name: '甲队', positions: ['A', 'B', 'C'] });
+                    setTeamB({ name: '乙队', positions: ['X', 'Y', 'Z'] });
                 } else {
-                    setScoreB(prev => prev + 1);
-                    if (servingTeam === 'B') {
-                        addLog(`${teamB.name} 得分 (${scoreA}:${scoreB + 1})，由 1号位[${teamB.positions[0]}] 继续发球。`);
-                    } else {
-                        const newPos = getRotatedPositions(teamB.positions);
-                        setTeamB({ ...teamB, positions: newPos });
-                        setServingTeam('B');
-                        addLog(`${teamB.name} 得分 (${scoreA}:${scoreB + 1}) 并夺回发球权，顺时针轮转，由新1号位[${newPos[0]}] 发球。`);
-                    }
+                    // 双人赛初始化时，设置 serverIndex = 0，即 1号(左) 发球
+                    setTeamA({ name: '甲队', positions: ['A', 'B'], serverIndex: 0 });
+                    setTeamB({ name: '乙队', positions: ['X', 'Y'], serverIndex: 0 });
                 }
+                setPhase('setup');
             };
 
-            const handleUndo = () => {
-                if (history.length === 0) return;
-                const lastState = history[history.length - 1];
-                setTeamA(lastState.teamA);
-                setTeamB(lastState.teamB);
-                setScoreA(lastState.scoreA);
-                setScoreB(lastState.scoreB);
-                setServingTeam(lastState.servingTeam);
-                setLogs(prev => prev.slice(0, lastState.logsLength));
+            const startGame = (firstServer) => {
+                setServingTeam(firstServer);
+                setPhase('playing');
+                let serverName = firstServer === 'A' ? teamA.positions[0] : teamB.positions[0];
+                if (gameMode === 2) {
+                     // 双人赛取当前 serverIndex 对应的名字
+                     const currentTeamObj = firstServer === 'A' ? teamA : teamB;
+                     serverName = currentTeamObj.positions[currentTeamObj.serverIndex || 0];
+                }
+                addLog(`${gameMode}人赛开始！由 ${firstServer === 'A' ? teamA.name : teamB.name} 的 [${serverName}] 率先发球。`, 'system');
+                saveHistory();
+            };
+
+            const addLog = (message, type = 'info') => {
+                setLogs(prev => [...prev, { id: Date.now(), time: new Date().toLocaleTimeString('zh-CN', { hour12: false }), message, type }]);
+            };
+
+            const saveHistory = () => {
+                setHistory(prev => [...prev, { 
+                    teamA: { ...teamA, positions: [...teamA.positions], serverIndex: teamA.serverIndex }, 
+                    teamB: { ...teamB, positions: [...teamB.positions], serverIndex: teamB.serverIndex }, 
+                    scoreA, scoreB, servingTeam 
+                }]);
+            };
+
+            const undoLastAction = () => {
+                if (history.length <= 1) return;
+                const prevState = history[history.length - 2]; 
+                setTeamA(prevState.teamA);
+                setTeamB(prevState.teamB);
+                setScoreA(prevState.scoreA);
+                setScoreB(prevState.scoreB);
+                setServingTeam(prevState.servingTeam);
                 setHistory(prev => prev.slice(0, -1));
-            };
-
-            const startGame = (firstServe) => {
-                setServingTeam(firstServe);
-                setPhase('game');
-                addLog(`比赛开始！通过掷硬币决定，由 ${firstServe === 'A' ? teamA.name : teamB.name} 的 1号位[${firstServe === 'A' ? teamA.positions[0] : teamB.positions[0]}] 率先发球。`);
+                addLog('⚠️ 撤销操作：已恢复至上一球状态。', 'system');
             };
 
             const handleReset = () => {
-                if (confirm('确定要结束当前比赛，返回设置界面吗？(将保留当前输入的队伍和人员名单)')) {
-                    setPhase('setup');
+                setPhase('setup');
+                setScoreA(0);
+                setScoreB(0);
+                setServingTeam(null);
+                setLogs([]);
+                setHistory([]);
+                setIsSwapped(false);
+            };
+
+            const handleReturnToModeSelect = () => {
+                if (confirm("确定要返回模式选择界面吗？将清除当前所有名单数据。")) {
+                    setPhase('modeSelect');
                     setScoreA(0);
                     setScoreB(0);
                     setServingTeam(null);
                     setLogs([]);
                     setHistory([]);
-                    setIsSwapped(false); // 重置场地左右状态
+                    setIsSwapped(false);
                 }
             };
 
-            if (phase === 'setup') {
-                return (
-                    <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 py-8">
-                        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full">
-                            <h1 className="text-3xl font-bold text-center text-green-700 mb-6 flex items-center justify-center gap-3">
-                                <ShuttlecockIcon className="w-8 h-8 text-green-600" />
-                                毽球三人赛发球系统
-                            </h1>
-                            <p className="text-gray-500 text-center mb-8 text-sm">基于中国毽球协会最新规则：夺回发球权时顺时针轮转</p>
+            const handleScore = (scoringTeam) => {
+                saveHistory();
+                
+                const processScore = (currentScore, currentTeamObj, opponentTeamCode) => {
+                    if (servingTeam === scoringTeam) {
+                        // 发球方得分：不轮转，原人继续发球
+                        let serverName = currentTeamObj.positions[0];
+                        if (gameMode === 2) {
+                            serverName = currentTeamObj.positions[currentTeamObj.serverIndex || 0];
+                        }
+                        addLog(`${currentTeamObj.name} 得分。继续由 [${serverName}] 发球 (未轮转)。`, 'score');
+                    } else {
+                        // 夺回球权：执行轮转 (三人) 或 交替发球权 (双人)
+                        if (gameMode === 3) {
+                            // 【三人赛专属代码：绝不触碰！】
+                            let newPos = [currentTeamObj.positions[1], currentTeamObj.positions[2], currentTeamObj.positions[0]];
+                            if (scoringTeam === 'A') setTeamA(prev => ({ ...prev, positions: newPos }));
+                            else setTeamB(prev => ({ ...prev, positions: newPos }));
+                            
+                            setServingTeam(scoringTeam);
+                            addLog(`${currentTeamObj.name} 夺回球权，顺时针轮转！由新1号位 [${newPos[0]}] 发球。`, 'rotate');
+                        } else {
+                            // 【双人赛专属代码：站位绝对固定，仅交替游标】
+                            let currentIdx = currentTeamObj.serverIndex || 0;
+                            let nextIdx = currentIdx === 0 ? 1 : 0; // 在 0 和 1 之间跳动
+                            
+                            if (scoringTeam === 'A') setTeamA(prev => ({ ...prev, serverIndex: nextIdx }));
+                            else setTeamB(prev => ({ ...prev, serverIndex: nextIdx }));
+                            
+                            setServingTeam(scoringTeam);
+                            addLog(`${currentTeamObj.name} 夺回球权！站位固定，发球权交替至 ${nextIdx === 0 ? '1号(左)' : '2号(右)'} [${currentTeamObj.positions[nextIdx]}]。`, 'rotate');
+                        }
+                    }
+                };
 
-                            <div className="grid md:grid-cols-2 gap-8 mb-8">
-                                {/* 甲队设置 */}
-                                <div className="space-y-4 border p-4 rounded-xl bg-blue-50/50">
+                if (scoringTeam === 'A') {
+                    setScoreA(prev => prev + 1);
+                    processScore(scoreA, teamA, 'B');
+                } else {
+                    setScoreB(prev => prev + 1);
+                    processScore(scoreB, teamB, 'A');
+                }
+            };
+
+            const handlePlayerClick = (teamType, posIndex, currentName) => {
+                if (phase !== 'playing') return;
+                setSubTarget({ teamType, posIndex, currentName });
+                setSubInput('');
+            };
+
+            const confirmSubstitution = () => {
+                if (!subInput.trim()) { setSubTarget(null); return; }
+                saveHistory(); 
+                
+                const targetTeam = subTarget.teamType === 'A' ? teamA : teamB;
+                const setTargetTeam = subTarget.teamType === 'A' ? setTeamA : setTeamB;
+                
+                const newPos = [...targetTeam.positions];
+                newPos[subTarget.posIndex] = subInput.trim();
+                setTargetTeam({ ...targetTeam, positions: newPos });
+                addLog(`🔄 换人：${targetTeam.name} 换下 [${subTarget.currentName}]，换上 [${subInput.trim()}]`, 'system');
+                setSubTarget(null);
+            };
+
+            if (phase === 'modeSelect') {
+                return (
+                    <div className="min-h-[100dvh] w-full bg-gray-50 flex items-center justify-center p-4">
+                        <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md border border-gray-100 flex flex-col items-center">
+                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
+                                <ShuttlecockIcon className="w-10 h-10" />
+                            </div>
+                            <h1 className="text-2xl font-black text-gray-800 mb-2">毽球裁判系统</h1>
+                            <p className="text-gray-500 text-sm mb-10 text-center">请选择本场比赛的类型，系统将自动应用对应轮转规则</p>
+                            
+                            <div className="w-full space-y-4">
+                                <button onClick={() => selectMode(3)} className="w-full flex items-center justify-between p-5 rounded-2xl border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 transition active:scale-95 group">
+                                    <div className="flex flex-col text-left">
+                                        <span className="text-lg font-bold text-blue-900">三人赛 (标准)</span>
+                                        <span className="text-xs text-blue-600/70 mt-1">1后场 + 2网前 | 夺回球权顺时针</span>
+                                    </div>
+                                    <UsersIcon className="w-8 h-8 text-blue-500 group-hover:scale-110 transition" />
+                                </button>
+                                
+                                <button onClick={() => selectMode(2)} className="w-full flex items-center justify-between p-5 rounded-2xl border-2 border-purple-500 bg-purple-50 hover:bg-purple-100 transition active:scale-95 group">
+                                    <div className="flex flex-col text-left">
+                                        <span className="text-lg font-bold text-purple-900">双人赛</span>
+                                        <span className="text-xs text-purple-600/70 mt-1">左右固定站位 | 夺回球权交替发球</span>
+                                    </div>
+                                    <UserIcon className="w-8 h-8 text-purple-500 group-hover:scale-110 transition" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (phase === 'setup') {
+                const isTriple = gameMode === 3;
+                return (
+                    <div className="w-full min-h-[100dvh] bg-gray-50 flex flex-col">
+                        <div className="p-4 bg-gray-800 text-white flex items-center justify-between sticky top-0 z-10 shadow-md">
+                            <button onClick={handleReturnToModeSelect} className="text-sm font-bold flex items-center gap-1 active:scale-95 bg-gray-700 px-3 py-1.5 rounded-lg">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                                换模式
+                            </button>
+                            <h1 className="text-base sm:text-lg font-black flex items-center gap-2">
+                                <ShuttlecockIcon className="w-5 h-5 text-green-400" />
+                                毽球{isTriple ? '三人赛' : '双人赛'}发球设置
+                            </h1>
+                            <div className="w-16"></div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 w-full max-w-2xl mx-auto space-y-6 pb-12 m-auto">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* 队伍A设置 */}
+                                <div className="space-y-4 p-5 rounded-2xl bg-blue-50 border border-blue-100 shadow-sm">
+                                    <h2 className="text-lg font-bold text-blue-800 flex items-center justify-between">队伍 1 <div className="w-3 h-3 rounded-full bg-blue-500 shadow-inner"></div></h2>
                                     <div>
-                                        <label className="block text-sm font-semibold mb-1 text-blue-800">队伍 A 名称</label>
-                                        <input className="w-full border-gray-300 rounded-lg shadow-sm p-2 border focus:ring-2 focus:ring-blue-400" 
+                                        <label className="block text-xs font-semibold mb-1 text-gray-500">队伍名称</label>
+                                        <input className="w-full rounded-xl shadow-sm p-3 border-gray-200 outline-none text-sm font-bold" 
                                             value={teamA.name} onChange={e => setTeamA({...teamA, name: e.target.value})} />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold mb-1">1号位 (靠近端线/首发)</label>
-                                        <input className="w-full border-gray-300 rounded-lg shadow-sm p-2 border" 
-                                            value={teamA.positions[0]} onChange={e => setTeamA({...teamA, positions: [e.target.value, teamA.positions[1], teamA.positions[2]]})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold mb-1">2号位 (靠近球网右侧)</label>
-                                        <input className="w-full border-gray-300 rounded-lg shadow-sm p-2 border" 
-                                            value={teamA.positions[1]} onChange={e => setTeamA({...teamA, positions: [teamA.positions[0], e.target.value, teamA.positions[2]]})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold mb-1">3号位 (靠近球网左侧)</label>
-                                        <input className="w-full border-gray-300 rounded-lg shadow-sm p-2 border" 
-                                            value={teamA.positions[2]} onChange={e => setTeamA({...teamA, positions: [teamA.positions[0], teamA.positions[1], e.target.value]})} />
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-bold text-gray-400 w-16 text-right">{isTriple ? '后场 1号' : '左侧 1号'}</span>
+                                            <input className="flex-1 rounded-xl shadow-sm p-3 border-gray-200 outline-none text-sm font-bold border-l-4 border-yellow-400" placeholder="发球人"
+                                                value={teamA.positions[0]} onChange={e => {const p=[...teamA.positions]; p[0]=e.target.value; setTeamA({...teamA, positions: p})}} />
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-bold text-gray-400 w-16 text-right">{isTriple ? '右前 2号' : '右侧 2号'}</span>
+                                            <input className="flex-1 rounded-xl shadow-sm p-3 border-gray-200 outline-none text-sm font-bold" 
+                                                value={teamA.positions[1]} onChange={e => {const p=[...teamA.positions]; p[1]=e.target.value; setTeamA({...teamA, positions: p})}} />
+                                        </div>
+                                        {isTriple && (
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-bold text-gray-400 w-16 text-right">左前 3号</span>
+                                            <input className="flex-1 rounded-xl shadow-sm p-3 border-gray-200 outline-none text-sm font-bold" 
+                                                value={teamA.positions[2]} onChange={e => {const p=[...teamA.positions]; p[2]=e.target.value; setTeamA({...teamA, positions: p})}} />
+                                        </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* 乙队设置 */}
-                                <div className="space-y-4 border p-4 rounded-xl bg-red-50/50">
+                                {/* 队伍B设置 */}
+                                <div className="space-y-4 p-5 rounded-2xl bg-red-50 border border-red-100 shadow-sm">
+                                    <h2 className="text-lg font-bold text-red-800 flex items-center justify-between">队伍 2 <div className="w-3 h-3 rounded-full bg-red-500 shadow-inner"></div></h2>
                                     <div>
-                                        <label className="block text-sm font-semibold mb-1 text-red-800">队伍 B 名称</label>
-                                        <input className="w-full border-gray-300 rounded-lg shadow-sm p-2 border focus:ring-2 focus:ring-red-400" 
+                                        <label className="block text-xs font-semibold mb-1 text-gray-500">队伍名称</label>
+                                        <input className="w-full rounded-xl shadow-sm p-3 border-gray-200 outline-none text-sm font-bold" 
                                             value={teamB.name} onChange={e => setTeamB({...teamB, name: e.target.value})} />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold mb-1">1号位 (靠近端线/首发)</label>
-                                        <input className="w-full border-gray-300 rounded-lg shadow-sm p-2 border" 
-                                            value={teamB.positions[0]} onChange={e => setTeamB({...teamB, positions: [e.target.value, teamB.positions[1], teamB.positions[2]]})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold mb-1">2号位 (靠近球网右侧)</label>
-                                        <input className="w-full border-gray-300 rounded-lg shadow-sm p-2 border" 
-                                            value={teamB.positions[1]} onChange={e => setTeamB({...teamB, positions: [teamB.positions[0], e.target.value, teamB.positions[2]]})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold mb-1">3号位 (靠近球网左侧)</label>
-                                        <input className="w-full border-gray-300 rounded-lg shadow-sm p-2 border" 
-                                            value={teamB.positions[2]} onChange={e => setTeamB({...teamB, positions: [teamB.positions[0], teamB.positions[1], e.target.value]})} />
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-bold text-gray-400 w-16 text-right">{isTriple ? '后场 1号' : '左侧 1号'}</span>
+                                            <input className="flex-1 rounded-xl shadow-sm p-3 border-gray-200 outline-none text-sm font-bold border-l-4 border-yellow-400" placeholder="发球人"
+                                                value={teamB.positions[0]} onChange={e => {const p=[...teamB.positions]; p[0]=e.target.value; setTeamB({...teamB, positions: p})}} />
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-bold text-gray-400 w-16 text-right">{isTriple ? '右前 2号' : '右侧 2号'}</span>
+                                            <input className="flex-1 rounded-xl shadow-sm p-3 border-gray-200 outline-none text-sm font-bold" 
+                                                value={teamB.positions[1]} onChange={e => {const p=[...teamB.positions]; p[1]=e.target.value; setTeamB({...teamB, positions: p})}} />
+                                        </div>
+                                        {isTriple && (
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-bold text-gray-400 w-16 text-right">左前 3号</span>
+                                            <input className="flex-1 rounded-xl shadow-sm p-3 border-gray-200 outline-none text-sm font-bold" 
+                                                value={teamB.positions[2]} onChange={e => {const p=[...teamB.positions]; p[2]=e.target.value; setTeamB({...teamB, positions: p})}} />
+                                        </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="text-center">
-                                <p className="mb-4 font-semibold text-gray-700">谁先发球？(抛硬币决定)</p>
-                                <div className="flex justify-center gap-4">
-                                    <button onClick={() => startGame('A')} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md transition transform hover:scale-105">
-                                        {teamA.name} 先发球
+                            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
+                                <p className="mb-4 font-black text-gray-800 text-center flex items-center justify-center gap-2">
+                                    <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    裁判抛硬币后，请选择哪方率先发球
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    <button onClick={() => startGame('A')} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-transform text-lg">
+                                        {teamA.name} 胜出，先发球
                                     </button>
-                                    <button onClick={() => startGame('B')} className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-md transition transform hover:scale-105">
-                                        {teamB.name} 先发球
+                                    <button onClick={() => startGame('B')} className="w-full py-4 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-500/30 active:scale-[0.98] transition-transform text-lg">
+                                        {teamB.name} 胜出，先发球
                                     </button>
                                 </div>
                             </div>
@@ -263,228 +365,241 @@
                 );
             }
 
-            // 球员卡片组件
-            const PlayerNode = ({ positionIndex, name, isServer, teamType }) => {
-                const labelMap = { 0: '1号位', 1: '2号位', 2: '3号位' };
+            const PlayerNode = ({ positionIndex, name, isServer, teamType, onClick, overrideLabel }) => {
+                const defaultLabelMap = { 0: '1号', 1: '2号', 2: '3号' };
+                const label = overrideLabel || defaultLabelMap[positionIndex];
                 const isA = teamType === 'A';
                 return (
-                    <div className={`player-card w-24 sm:w-28 h-16 sm:h-20 flex flex-col items-center justify-center rounded-xl shadow-lg relative bg-white border-2 ${isA ? 'border-blue-200' : 'border-red-200'} ${isServer ? 'server-active' : ''}`}>
-                        <span className={`text-xs font-bold px-2 py-1 rounded-bl-xl rounded-br-xl absolute top-0 ${isA ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                            {labelMap[positionIndex]}
+                    <div onClick={onClick} className={`player-card cursor-pointer active:scale-90 hover:shadow-lg w-[45px] sm:w-[60px] md:w-[70px] h-[36px] sm:h-[48px] md:h-[55px] flex flex-col items-center justify-center rounded-lg shadow relative bg-white border-2 ${isA ? 'border-blue-200' : 'border-red-200'} ${isServer ? 'server-active z-20' : 'z-10'}`}>
+                        <span className={`text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded-bl rounded-br absolute top-0 ${isA ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                            {label}
                         </span>
-                        <span className="text-sm sm:text-lg font-bold mt-4 text-gray-800 truncate px-1 w-full text-center">{name}</span>
+                        <span className="text-[10px] sm:text-xs md:text-sm font-black mt-3 sm:mt-4 text-gray-800 truncate px-1 w-full text-center">{name}</span>
                         {isServer && (
-                            <div className="absolute -top-3 -right-3 bg-yellow-400 text-white rounded-full p-1.5 shadow-md transform rotate-12 animate-bounce z-20">
-                                <ShuttlecockIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                            <div className="absolute -top-3 -right-3 sm:-top-4 sm:-right-4 bg-yellow-400 text-white rounded-full p-1 sm:p-1.5 shadow-md transform rotate-12 animate-bounce z-30">
+                                <ShuttlecockIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                             </div>
                         )}
                     </div>
                 );
             };
 
+            const displayOrder = isSwapped ? ['B', 'A'] : ['A', 'B'];
+            const isTriple = gameMode === 3;
+
             return (
-                <div className="flex-1 flex flex-col md:flex-row bg-gray-100">
+                <div className="w-full h-[100dvh] flex flex-col bg-gray-900 mx-auto relative overflow-hidden max-w-[800px]">
                     
-                    {/* 左侧：赛场可视化 */}
-                    <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 bg-gray-100 relative">
-                        
-                        {/* 顶部控制栏 (新增交换场地按钮) */}
-                        <div className="flex justify-end mb-2 w-full max-w-4xl mx-auto">
-                            <button 
-                                onClick={() => setIsSwapped(!isSwapped)}
-                                className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow hover:bg-gray-50 transition text-gray-700 font-bold border border-gray-200 active:scale-95"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                </svg>
-                                交换左右场地
-                            </button>
-                        </div>
+                    {/* ===== 区域 1：顶部比分板 ===== */}
+                    <div className="shrink-0 h-24 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm z-20 relative">
+                        {displayOrder.map((teamCode, index) => {
+                            const isTeamA = teamCode === 'A';
+                            const tName = isTeamA ? teamA.name : teamB.name;
+                            const tScore = isTeamA ? scoreA : scoreB;
+                            const nameColor = isTeamA ? 'text-blue-700' : 'text-red-700';
+                            const scoreColor = isTeamA ? 'text-blue-600' : 'text-red-600';
 
-                        {/* 计分板 (根据交换状态动态渲染队伍位置) */}
-                        <div className="bg-white rounded-2xl shadow-lg p-4 mb-6 flex justify-between items-center z-10 mx-auto w-full max-w-4xl">
-                            {/* 左侧队伍 */}
-                            <div className="text-center flex-1">
-                                <h2 className={`text-2xl font-bold ${isSwapped ? 'text-red-700' : 'text-blue-700'}`}>{isSwapped ? teamB.name : teamA.name}</h2>
-                                <p className="text-5xl font-black text-gray-800 my-2">{isSwapped ? scoreB : scoreA}</p>
-                                <button onClick={() => handleScore(isSwapped ? 'B' : 'A')} className={`w-full mt-2 text-white font-bold py-3 px-4 rounded-xl shadow transition active:scale-95 ${isSwapped ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}>
-                                    {isSwapped ? teamB.name : teamA.name} 得分 +1
-                                </button>
-                            </div>
-                            
-                            <div className="px-4 sm:px-6 flex flex-col items-center">
-                                <span className="text-3xl font-bold text-gray-300">VS</span>
-                            </div>
-
-                            {/* 右侧队伍 */}
-                            <div className="text-center flex-1">
-                                <h2 className={`text-2xl font-bold ${isSwapped ? 'text-blue-700' : 'text-red-700'}`}>{isSwapped ? teamA.name : teamB.name}</h2>
-                                <p className="text-5xl font-black text-gray-800 my-2">{isSwapped ? scoreA : scoreB}</p>
-                                <button onClick={() => handleScore(isSwapped ? 'A' : 'B')} className={`w-full mt-2 text-white font-bold py-3 px-4 rounded-xl shadow transition active:scale-95 ${isSwapped ? 'bg-blue-500 hover:bg-blue-600' : 'bg-red-500 hover:bg-red-600'}`}>
-                                    {isSwapped ? teamA.name : teamB.name} 得分 +1
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* 球场图 (改为横向布局) */}
-                        <div className="flex-1 flex items-center justify-center min-h-[300px]">
-                            <div className="court-bg rounded-lg relative w-full max-w-[800px] aspect-[2/1] sm:aspect-[2.2/1] flex flex-row">
-                                
-                                {/* 左侧半场 */}
-                                <div className="flex-1 relative flex flex-row items-center justify-between p-2 sm:p-6">
-                                    <div className="absolute top-2 left-4 text-white/80 font-bold tracking-widest">{isSwapped ? teamB.name : teamA.name} 半场</div>
-                                    
-                                    {/* 左侧 1号位 (靠近左侧端线) */}
-                                    <div className="z-10 -ml-1 sm:ml-2">
-                                        <PlayerNode 
-                                            positionIndex={0} 
-                                            name={isSwapped ? teamB.positions[0] : teamA.positions[0]} 
-                                            isServer={servingTeam === (isSwapped ? 'B' : 'A')} 
-                                            teamType={isSwapped ? 'B' : 'A'} 
-                                        />
-                                    </div>
-
-                                    {/* 左侧 网前: 面朝右网。从左至右为3、2号位，因此上为3，下为2 */}
-                                    <div className="flex flex-col justify-between h-full py-2 sm:py-6 z-10 mr-2 sm:mr-6">
-                                        <PlayerNode positionIndex={2} name={isSwapped ? teamB.positions[2] : teamA.positions[2]} isServer={false} teamType={isSwapped ? 'B' : 'A'} />
-                                        <div className="h-4 sm:h-8"></div>
-                                        <PlayerNode positionIndex={1} name={isSwapped ? teamB.positions[1] : teamA.positions[1]} isServer={false} teamType={isSwapped ? 'B' : 'A'} />
-                                    </div>
-                                </div>
-
-                                {/* 垂直球网 */}
-                                <div className="net absolute left-1/2 transform -translate-x-1/2 z-0"></div>
-
-                                {/* 右侧半场 */}
-                                <div className="flex-1 relative flex flex-row-reverse items-center justify-between p-2 sm:p-6">
-                                    <div className="absolute bottom-2 right-4 text-white/80 font-bold tracking-widest">{isSwapped ? teamA.name : teamB.name} 半场</div>
-                                    
-                                    {/* 右侧 1号位 (靠近右侧端线) */}
-                                    <div className="z-10 -mr-1 sm:mr-2">
-                                        <PlayerNode 
-                                            positionIndex={0} 
-                                            name={isSwapped ? teamA.positions[0] : teamB.positions[0]} 
-                                            isServer={servingTeam === (isSwapped ? 'A' : 'B')} 
-                                            teamType={isSwapped ? 'A' : 'B'} 
-                                        />
-                                    </div>
-
-                                    {/* 右侧 网前: 面朝左网。从左至右为3、2号位，因此下为3，上为2 */}
-                                    <div className="flex flex-col justify-between h-full py-2 sm:py-6 z-10 ml-2 sm:ml-6">
-                                        <PlayerNode positionIndex={1} name={isSwapped ? teamA.positions[1] : teamB.positions[1]} isServer={false} teamType={isSwapped ? 'A' : 'B'} />
-                                        <div className="h-4 sm:h-8"></div>
-                                        <PlayerNode positionIndex={2} name={isSwapped ? teamA.positions[2] : teamB.positions[2]} isServer={false} teamType={isSwapped ? 'A' : 'B'} />
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 右侧：控制台与日志 */}
-                    <div className="w-full md:w-96 md:h-[100dvh] md:sticky md:top-0 bg-white shadow-[-5px_0_15px_rgba(0,0,0,0.05)] flex flex-col z-20">
-                        {/* 状态指示器 */}
-                        <div className="p-6 border-b bg-green-50">
-                            <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-2">
-                                <ShuttlecockIcon className="w-5 h-5 text-green-600" />
-                                当前发球权
-                            </h3>
-                            <div className="text-xl font-bold text-green-700 bg-white p-3 rounded-lg border border-green-200 shadow-inner">
-                                {servingTeam === 'A' ? teamA.name : teamB.name} - {' '}
-                                <span className="text-yellow-600">
-                                    {(servingTeam === 'A' ? teamA.positions[0] : teamB.positions[0])}
-                                </span> (1号位)
-                            </div>
-                        </div>
-
-                        {/* 事件日志 */}
-                        <div className="flex-1 flex flex-col p-6 overflow-hidden min-h-[350px] md:min-h-0">
-                            <h3 className="font-bold text-gray-700 mb-4">比赛记录 (自动轮转跟踪)</h3>
-                            <div 
-                                ref={logContainerRef}
-                                className="flex-1 overflow-y-auto bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3"
-                            >
-                                {logs.length === 0 ? (
-                                    <p className="text-gray-400 text-center text-sm mt-10">比赛暂未产生积分...</p>
-                                ) : (
-                                    logs.map((log, index) => (
-                                        <div key={log.id} className="text-sm p-3 bg-white rounded-lg shadow-sm border border-gray-100 animate-[slideIn_0.3s_ease-out]">
-                                            <span className="text-gray-400 text-xs mr-2">#{index + 1}</span>
-                                            <span className="text-gray-700">{log.text}</span>
+                            return (
+                                <React.Fragment key={teamCode}>
+                                    <div className="flex-1 flex flex-col items-center relative h-full justify-center">
+                                        <span className={`text-sm sm:text-base font-bold ${nameColor} truncate w-full text-center`}>{tName}</span>
+                                        <div className="flex items-end justify-center mt-1">
+                                            <span className={`text-5xl font-black ${scoreColor} leading-none`}>{tScore}</span>
                                         </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
+                                        {servingTeam === teamCode && <span className="absolute -bottom-5 md:-bottom-6 bg-yellow-400 text-yellow-900 text-[10px] md:text-xs font-black px-2 py-0.5 rounded shadow-md whitespace-nowrap z-30">发球方</span>}
+                                    </div>
+                                    {index === 0 && <div className="text-3xl font-black text-gray-300 px-2 shrink-0">:</div>}
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
 
-                        {/* 底部操作区 (撤销与规则提示) */}
-                        <div className="p-6 border-t bg-gray-50 space-y-4">
-                            <div className="flex gap-3">
-                                <button 
-                                    onClick={handleUndo}
-                                    disabled={history.length === 0}
-                                    className={`flex-1 py-3 px-4 rounded-xl font-bold flex justify-center items-center gap-2 transition ${history.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-orange-100 text-orange-700 hover:bg-orange-200 active:scale-95 border border-orange-300'}`}
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-                                    撤销上一球
-                                </button>
+                    {/* ===== 区域 2：可视化球场 ===== */}
+                    <div className="shrink-0 w-full bg-gray-800 p-2 sm:p-4 flex flex-col items-center shadow-inner z-10">
+                        <div className="w-full aspect-[2/1] bg-green-500 border-4 border-white court-bg rounded shadow-2xl relative overflow-hidden flex">
+                            {/* 中央球网 */}
+                            <div className="net"></div>
+
+                            {['left', 'right'].map((side) => {
+                                const isTeamA = (side === 'left' && !isSwapped) || (side === 'right' && isSwapped);
+                                const currentTeam = isTeamA ? teamA : teamB;
+                                const teamCode = isTeamA ? 'A' : 'B';
+                                const isCurrentServing = servingTeam === teamCode;
                                 
-                                <button 
-                                    onClick={() => setShowErrorModal(true)}
-                                    className="py-3 px-4 bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-700 transition active:scale-95 flex items-center justify-center shadow-md"
-                                    title="查看发球错误判罚规则"
-                                >
-                                    <AlertIcon className="w-5 h-5" />
-                                </button>
-                            </div>
-                            
-                            <button 
-                                onClick={handleReset}
-                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold transition shadow-sm active:scale-95"
-                            >
-                                返回设置界面 (重新开局)
-                            </button>
+                                return (
+                                    <React.Fragment key={side}>
+                                        {side === 'left' ? (
+                                            <div className="flex-1 relative flex flex-row pr-3 sm:pr-6">
+                                                {isTriple ? (
+                                                    <>
+                                                        {/* 三人左场代码：一字未动！ */}
+                                                        <div className="w-[30%] flex items-center justify-start h-full pl-2 sm:pl-4">
+                                                            <PlayerNode positionIndex={0} name={currentTeam.positions[0]} isServer={isCurrentServing} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 0, currentTeam.positions[0])} />
+                                                        </div>
+                                                        <div className="flex-1 flex flex-col justify-around items-end h-full py-1">
+                                                            <PlayerNode positionIndex={2} name={currentTeam.positions[2]} isServer={false} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 2, currentTeam.positions[2])} />
+                                                            <PlayerNode positionIndex={1} name={currentTeam.positions[1]} isServer={false} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 1, currentTeam.positions[1])} />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {/* 双人左场：左手在上方(1号左)，右手在下方(2号右)。底线在左边，所以退向底线中心是 -translate-x */}
+                                                        <div className="flex-1 flex flex-col justify-around items-center h-full py-2">
+                                                            <div className={`transition-all duration-500 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 0 ? '-translate-x-10 sm:-translate-x-20 md:-translate-x-32 translate-y-10 sm:translate-y-16 md:translate-y-24' : ''}`}>
+                                                                <PlayerNode positionIndex={0} overrideLabel="1号(左)" name={currentTeam.positions[0]} isServer={isCurrentServing && (currentTeam.serverIndex || 0) === 0} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 0, currentTeam.positions[0])} />
+                                                            </div>
+                                                            <div className={`transition-all duration-500 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 1 ? '-translate-x-10 sm:-translate-x-20 md:-translate-x-32 -translate-y-10 sm:-translate-y-16 md:-translate-y-24' : ''}`}>
+                                                                <PlayerNode positionIndex={1} overrideLabel="2号(右)" name={currentTeam.positions[1]} isServer={isCurrentServing && (currentTeam.serverIndex || 0) === 1} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 1, currentTeam.positions[1])} />
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="flex-1 relative flex flex-row pl-3 sm:pl-6">
+                                                {isTriple ? (
+                                                    <>
+                                                        {/* 三人右场代码：一字未动！ */}
+                                                        <div className="flex-1 flex flex-col justify-around items-start h-full py-1">
+                                                            <PlayerNode positionIndex={1} name={currentTeam.positions[1]} isServer={false} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 1, currentTeam.positions[1])} />
+                                                            <PlayerNode positionIndex={2} name={currentTeam.positions[2]} isServer={false} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 2, currentTeam.positions[2])} />
+                                                        </div>
+                                                        <div className="w-[30%] flex items-center justify-end h-full pr-2 sm:pr-4">
+                                                            <PlayerNode positionIndex={0} name={currentTeam.positions[0]} isServer={isCurrentServing} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 0, currentTeam.positions[0])} />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {/* 双人右场：面朝左。左手在下方(1号左)，右手在上方(2号右)。底线在右边，所以退向底线中心是 translate-x */}
+                                                        <div className="flex-1 flex flex-col justify-around items-center h-full py-2">
+                                                            <div className={`transition-all duration-500 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 1 ? 'translate-x-10 sm:translate-x-20 md:translate-x-32 translate-y-10 sm:translate-y-16 md:translate-y-24' : ''}`}>
+                                                                <PlayerNode positionIndex={1} overrideLabel="2号(右)" name={currentTeam.positions[1]} isServer={isCurrentServing && (currentTeam.serverIndex || 0) === 1} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 1, currentTeam.positions[1])} />
+                                                            </div>
+                                                            <div className={`transition-all duration-500 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 0 ? 'translate-x-10 sm:translate-x-20 md:translate-x-32 -translate-y-10 sm:-translate-y-16 md:-translate-y-24' : ''}`}>
+                                                                <PlayerNode positionIndex={0} overrideLabel="1号(左)" name={currentTeam.positions[0]} isServer={isCurrentServing && (currentTeam.serverIndex || 0) === 0} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 0, currentTeam.positions[0])} />
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
                         </div>
                     </div>
 
-                    {/* 错误处理说明模态框 */}
-                    {showErrorModal && (
-                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-[scaleIn_0.2s_ease-out]">
-                                <div className="bg-red-500 p-4 flex justify-between items-center">
-                                    <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                                        <AlertIcon className="w-6 h-6" />
-                                        发球顺序错误判罚指南
-                                    </h3>
-                                    <button onClick={() => setShowErrorModal(false)} className="text-white hover:text-red-200">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
-                                </div>
-                                <div className="p-6 space-y-4">
-                                    <p className="text-gray-700">根据规则，当裁判员发现发球次序错误时：</p>
-                                    <ul className="list-disc pl-5 text-gray-600 text-sm space-y-2">
-                                        <li>判该队<strong>失发球权</strong>，并恢复正确位置。</li>
-                                        <li>如犯规队已因该次错误发球得分，应<strong>取消所有错误所得的分数</strong>。</li>
-                                        <li>对方得分仍然有效。</li>
-                                    </ul>
-                                    <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl mt-4">
-                                        <h4 className="font-bold text-orange-800 text-sm mb-2">系统操作指引：</h4>
-                                        <p className="text-orange-700 text-sm">
-                                            如果发生此类情况，请连续点击右下角的 <strong>【撤销上一球】</strong> 按钮，直到比分和发球人退回到发生错误之前的状态。然后手动点击对方的 <strong>【得分】</strong> 按钮，将发球权和比分判给对方。
-                                        </p>
+                    {}
+                    {/* ===== 区域 3：计分操作按钮 ===== */}
+                    <div className="shrink-0 p-3 bg-white z-20 flex gap-3 border-b shadow-md">
+                        {displayOrder.map((teamCode) => {
+                            const isTeamA = teamCode === 'A';
+                            const tName = isTeamA ? teamA.name : teamB.name;
+                            const btnColor = isTeamA ? 'bg-blue-600 active:bg-blue-800 shadow-blue-600/30' : 'bg-red-600 active:bg-red-800 shadow-red-600/30';
+
+                            return (
+                                <button key={teamCode} onClick={() => handleScore(teamCode)} className={`flex-1 py-5 sm:py-6 ${btnColor} text-white rounded-xl text-2xl font-black shadow-lg transition-transform active:scale-[0.97] flex flex-col items-center justify-center leading-none`}>
+                                    <span>{tName}</span>
+                                    <span className="text-sm opacity-90 mt-1 font-bold">+1 得分</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* ===== 区域 4：内部滚动日志与工具 ===== */}
+                    <div className="flex-1 overflow-y-auto bg-gray-100 flex flex-col relative pb-safe">
+                        <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-black/5 to-transparent pointer-events-none"></div>
+
+                        <div className="p-3 grid grid-cols-3 gap-3 shrink-0 mt-2">
+                            <button onClick={() => setIsSwapped(!isSwapped)}
+                                className="py-3 bg-white border border-gray-300 text-gray-700 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 shadow-sm active:bg-gray-100">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                镜像换边
+                            </button>
+                            <button onClick={undoLastAction} disabled={history.length <= 1}
+                                className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 shadow-sm border ${history.length <= 1 ? 'bg-gray-200 text-gray-400 border-gray-300' : 'bg-white border-gray-300 text-gray-700 active:bg-gray-100'}`}>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                                撤销上一球
+                            </button>
+                            <button onClick={() => { if(confirm("确定要返回设置界面吗？比分将被重置。")) handleReset() }}
+                                className="py-3 bg-gray-800 text-white rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 shadow-sm active:bg-gray-900">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                重置开局
+                            </button>
+                        </div>
+
+                        <div className="px-3 pb-4 flex-1 flex flex-col">
+                            <h3 className="text-xs font-bold text-gray-500 mb-2 flex items-center justify-between">
+                                <span>日志 ({gameMode === 2 ? '站位固定, 夺回交替发球' : '夺回球权顺时针轮转'})</span>
+                                <button onClick={() => setShowGuideModal(true)} className="text-blue-600 underline flex items-center gap-1">
+                                    发错球了?
+                                </button>
+                            </h3>
+                            <div ref={logContainerRef} className="bg-white border border-gray-200 rounded-xl p-3 flex-1 overflow-y-auto space-y-2 min-h-[150px]">
+                                {logs.map(log => (
+                                    <div key={log.id} className={`text-xs p-2.5 rounded-lg border-l-4 shadow-sm ${
+                                        log.type === 'system' ? 'bg-gray-50 border-gray-400 text-gray-600' :
+                                        log.type === 'score' ? 'bg-blue-50 border-blue-500 text-blue-800' :
+                                        'bg-yellow-50 border-yellow-500 text-yellow-800'
+                                    }`}>
+                                        <span className="text-[10px] text-gray-400 mr-2 font-mono block mb-1">{log.time}</span>
+                                        <span className="font-medium leading-relaxed">{log.message}</span>
                                     </div>
-                                    <button onClick={() => setShowErrorModal(false)} className="w-full mt-4 bg-gray-800 text-white font-bold py-3 rounded-xl hover:bg-gray-700 transition">
-                                        我明白了
-                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {}
+                    {showGuideModal && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 p-5 backdrop-blur-sm">
+                            <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm relative transform transition-all">
+                                <h3 className="text-xl font-black mb-4 text-red-600 flex items-center gap-2">⚠️ 发球错误处理</h3>
+                                <div className="text-sm space-y-3 text-gray-700 bg-red-50 p-4 rounded-2xl">
+                                    <p className="font-bold text-gray-900">当裁判发现发球次序错误，且这分刚打完：</p>
+                                    <ol className="list-decimal pl-5 space-y-2 text-gray-800 font-medium">
+                                        <li>点击界面下方的 <strong>【撤销上一球】</strong> ，退回至发球前。</li>
+                                        <li>直接点击 <strong>【对方 得分】</strong>。</li>
+                                        <li className="text-red-700">系统会自动交出球权并完成正确的轮转或游标交替。</li>
+                                    </ol>
+                                </div>
+                                <button onClick={() => setShowGuideModal(false)} className="mt-6 w-full bg-gray-900 hover:bg-black text-white py-4 rounded-2xl font-bold active:scale-95 text-lg">我知道了</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {subTarget && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 p-5 backdrop-blur-sm">
+                            <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm relative">
+                                <h3 className="text-xl font-black mb-5 flex items-center gap-2 text-gray-800">
+                                    🔄 场上换人
+                                </h3>
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-2">即将换下的队员与位置</label>
+                                        <div className="bg-gray-100 p-4 rounded-2xl font-bold text-gray-400 line-through flex justify-between border border-gray-200">
+                                            <span>{subTarget.teamType === 'A' ? teamA.name : teamB.name} - {isTriple ? ['1号位', '2号位', '3号位'][subTarget.posIndex] : ['1号(左)', '2号(右)'][subTarget.posIndex]}</span>
+                                            <span className="text-gray-600">{subTarget.currentName}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 mb-2">换上队员 (输入新号码/名字)</label>
+                                        <input 
+                                            autoFocus
+                                            className="w-full border-2 border-green-500 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-green-500/20 text-xl font-bold transition-all shadow-inner"
+                                            placeholder="例如: 8号"
+                                            value={subInput}
+                                            onChange={(e) => setSubInput(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-4 mt-8">
+                                    <button onClick={() => setSubTarget(null)} className="flex-1 bg-gray-100 text-gray-700 py-4 rounded-2xl font-bold active:scale-95 transition text-lg">取消</button>
+                                    <button onClick={confirmSubstitution} className="flex-[2] bg-green-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-500/30 active:scale-95 transition text-lg">确认换上</button>
                                 </div>
                             </div>
                         </div>
                     )}
-                    
-                    <style dangerouslySetInnerHTML={{__html: `
-                        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-                        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-                    `}} />
                 </div>
             );
         };
