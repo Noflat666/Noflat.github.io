@@ -64,8 +64,8 @@
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
-    <div id="root" class="h-full"></div>
+<body class="text-gray-800 bg-gray-50">
+    <div id="root" class="min-h-[100dvh] flex flex-col"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
@@ -189,7 +189,7 @@
 
             if (phase === 'setup') {
                 return (
-                    <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 overflow-y-auto">
+                    <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 py-8">
                         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-2xl w-full">
                             <h1 className="text-3xl font-bold text-center text-green-700 mb-6 flex items-center justify-center gap-3">
                                 <ShuttlecockIcon className="w-8 h-8 text-green-600" />
@@ -283,7 +283,7 @@
             };
 
             return (
-                <div className="flex-1 flex flex-col md:flex-row bg-gray-100 h-full">
+                <div className="flex-1 flex flex-col md:flex-row bg-gray-100">
                     
                     {/* 左侧：赛场可视化 */}
                     <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 bg-gray-100 relative">
@@ -382,7 +382,7 @@
                     </div>
 
                     {/* 右侧：控制台与日志 */}
-                    <div className="w-full md:w-96 bg-white shadow-[-5px_0_15px_rgba(0,0,0,0.05)] flex flex-col z-20">
+                    <div className="w-full md:w-96 md:h-[100dvh] md:sticky md:top-0 bg-white shadow-[-5px_0_15px_rgba(0,0,0,0.05)] flex flex-col z-20">
                         {/* 状态指示器 */}
                         <div className="p-6 border-b bg-green-50">
                             <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-2">
@@ -398,7 +398,7 @@
                         </div>
 
                         {/* 事件日志 */}
-                        <div className="flex-1 flex flex-col p-6 overflow-hidden">
+                        <div className="flex-1 flex flex-col p-6 overflow-hidden min-h-[350px] md:min-h-0">
                             <h3 className="font-bold text-gray-700 mb-4">比赛记录 (自动轮转跟踪)</h3>
                             <div 
                                 ref={logContainerRef}
