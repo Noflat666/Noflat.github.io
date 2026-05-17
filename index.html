@@ -174,7 +174,7 @@
                 
                 const processScore = (currentScore, currentTeamObj, opponentTeamCode) => {
                     if (servingTeam === scoringTeam) {
-                        // 发球方得分
+                        // 发球方得分：不轮转
                         let serverName = currentTeamObj.positions[0];
                         if (gameMode === 2) {
                             serverName = currentTeamObj.positions[currentTeamObj.serverIndex || 0];
@@ -190,7 +190,7 @@
                             setServingTeam(scoringTeam);
                             addLog(`${currentTeamObj.name} 夺回球权，顺时针轮转！由新1号位 [${newPos[0]}] 发球。`, 'rotate');
                         } else {
-                            // 双人赛交替发球，站位不动
+                            // 双人赛交替发球，站位完全不动
                             let currentIdx = currentTeamObj.serverIndex || 0;
                             let nextIdx = currentIdx === 0 ? 1 : 0;
                             
@@ -438,12 +438,13 @@
                                                     </>
                                                 ) : (
                                                     <>
-                                                        {/* 双人左场：居中站位。发球时退向底线中心 */}
+                                                        {/* 双人左场 (完美对称修正版) */}
+                                                        {/* 整体靠前: translate-x-2 ~ 8， 发球后撤: -translate-x-24，发球聚拢: +/- translate-y-24 */}
                                                         <div className="flex-1 flex flex-col justify-around items-center h-full py-2">
-                                                            <div className={`transition-all duration-700 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 0 ? '-translate-x-16 sm:-translate-x-24 md:-translate-x-32 translate-y-8 sm:translate-y-12 md:translate-y-16' : ''}`}>
+                                                            <div className={`transition-all duration-700 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 0 ? '-translate-x-12 sm:-translate-x-16 md:-translate-x-24 translate-y-10 sm:translate-y-16 md:translate-y-24' : 'translate-x-2 sm:translate-x-4 md:translate-x-8'}`}>
                                                                 <PlayerNode positionIndex={0} overrideLabel="1号(左)" name={currentTeam.positions[0]} isServer={isCurrentServing && (currentTeam.serverIndex || 0) === 0} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 0, currentTeam.positions[0])} />
                                                             </div>
-                                                            <div className={`transition-all duration-700 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 1 ? '-translate-x-16 sm:-translate-x-24 md:-translate-x-32 -translate-y-8 sm:-translate-y-12 md:-translate-y-16' : ''}`}>
+                                                            <div className={`transition-all duration-700 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 1 ? '-translate-x-12 sm:-translate-x-16 md:-translate-x-24 -translate-y-10 sm:-translate-y-16 md:-translate-y-24' : 'translate-x-2 sm:translate-x-4 md:translate-x-8'}`}>
                                                                 <PlayerNode positionIndex={1} overrideLabel="2号(右)" name={currentTeam.positions[1]} isServer={isCurrentServing && (currentTeam.serverIndex || 0) === 1} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 1, currentTeam.positions[1])} />
                                                             </div>
                                                         </div>
@@ -465,12 +466,13 @@
                                                     </>
                                                 ) : (
                                                     <>
-                                                        {/* 双人右场：居中站位。发球时退向底线中心 */}
+                                                        {/* 双人右场 (完美对称修正版) */}
+                                                        {/* 整体靠前: -translate-x-2 ~ 8， 发球后撤: translate-x-24，发球聚拢: +/- translate-y-24 */}
                                                         <div className="flex-1 flex flex-col justify-around items-center h-full py-2">
-                                                            <div className={`transition-all duration-700 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 1 ? 'translate-x-16 sm:translate-x-24 md:translate-x-32 translate-y-8 sm:translate-y-12 md:translate-y-16' : ''}`}>
+                                                            <div className={`transition-all duration-700 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 1 ? 'translate-x-12 sm:translate-x-16 md:translate-x-24 translate-y-10 sm:translate-y-16 md:translate-y-24' : '-translate-x-2 sm:-translate-x-4 md:-translate-x-8'}`}>
                                                                 <PlayerNode positionIndex={1} overrideLabel="2号(右)" name={currentTeam.positions[1]} isServer={isCurrentServing && (currentTeam.serverIndex || 0) === 1} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 1, currentTeam.positions[1])} />
                                                             </div>
-                                                            <div className={`transition-all duration-700 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 0 ? 'translate-x-16 sm:translate-x-24 md:translate-x-32 -translate-y-8 sm:-translate-y-12 md:-translate-y-16' : ''}`}>
+                                                            <div className={`transition-all duration-700 ease-in-out z-20 ${isCurrentServing && (currentTeam.serverIndex || 0) === 0 ? 'translate-x-12 sm:translate-x-16 md:translate-x-24 -translate-y-10 sm:-translate-y-16 md:-translate-y-24' : '-translate-x-2 sm:-translate-x-4 md:-translate-x-8'}`}>
                                                                 <PlayerNode positionIndex={0} overrideLabel="1号(左)" name={currentTeam.positions[0]} isServer={isCurrentServing && (currentTeam.serverIndex || 0) === 0} teamType={teamCode} onClick={() => handlePlayerClick(teamCode, 0, currentTeam.positions[0])} />
                                                             </div>
                                                         </div>
@@ -484,7 +486,6 @@
                         </div>
                     </div>
 
-                    {}
                     {/* ===== 区域 3：计分操作按钮 ===== */}
                     <div className="shrink-0 p-3 bg-white z-20 flex gap-3 border-b shadow-md">
                         {displayOrder.map((teamCode) => {
@@ -545,7 +546,6 @@
                         </div>
                     </div>
 
-                    {}
                     {showGuideModal && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 p-5 backdrop-blur-sm">
                             <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm relative transform transition-all">
